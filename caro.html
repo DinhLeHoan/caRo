@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CaRo</title>
+</head>
+<style>
+  #game-board{
+    position: relative;
+    margin: 5% 35%;
+  }
+  .cell{
+    font-family: Arial, Helvetica, sans-serif;
+    border: solid 1px #000;
+    text-align: center;
+    font-size: 40px;
+    cursor: pointer;
+    color: blue;
+    font-weight: bold;
+  }
+  .restart{
+    
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    font-family: Arial, Helvetica, sans-serif;
+    border: solid 1px #000;
+    text-align: center;
+    font-size: 30px;
+    cursor: pointer;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    z-index: 3;
+  }
+</style>
+<body>
+  <button class="restart" onclick="restart()">Chơi lại</button>
+  <div id="game-board">
+    
+  </div>
+</body>
+<script>
+  // giá trị của x, o và rỗng
+  const value_blank = 0;
+  const value_X = 2;
+  const value_O = 3;
+
+  // nhập số hàng cột cần
+  const cols_option = prompt("Bạn muốn nhập mấy cột (Nhập số dùm): ");
+  const rows_option = prompt("Bạn muốn nhập mấy hàng (Nhập số dùm): ");
+  
+  // kích thước mỗi ô
+  const default_cell_size = 50
+  // số ô đã chơi
+  var cell_played = 0;
+
+  // nhấp vào là chơi lại
+  function restart(){
+    location.reload();
+  }
+
+  function eachCell(x,y){
+    this.x = x;
+    this.y = y;
+    this.value = value_blank;
+
+    // in ra ô với các thuộc tính
+    this.insert_html = function (){
+      var top = x * default_cell_size;
+      var left = y * default_cell_size;
+      var cell_in_html = '<div id="cell-'+x+'-'+y+'" onclick="play('+x+','+y+')" class="cell" style="position: absolute; width: '+
+            default_cell_size+'px; height:'+
+            default_cell_size+'px; left:'+
+            left+'px; top:'+
+            top+'px; line-height: '+
+            default_cell_size+'px;"></div>';
+      return cell_in_html;
+    }
+
+    // vẽ X hoặc O vào đúng ID tùy theo value
+    this.insert_X_O = function(){
+      var cellID = document.getElementById("cell-"+x+'-'+y);
+      switch(this.value){
+        case value_O:
+          cellID.innerHTML = "O";
+          break;
+        case value_X:
+          cellID.innerHTML = "X";
+          break;
+        default:
+          cellID.innerHTML = "";
+      }
+      cell_played++;
+    }
+  }
+
+  // khởi tạo hàm tạo boardGame, đưa hàng cột và ID của cả board game
+  function boardGame(rows, cols, elementId){
+    this.rows = rows;
+    this.cols = cols;
+    this.elementId = elementId;
+
+    // tạo mảng cells chứa tất cả cell con trong game 
+    this.cells = [];
+    this.isFinish = false;
+
+    if(confirm("X sẽ đi trước ?") == true){
+        this.turn = value_X;
+    }
+    else{
+      this.turn = value_O;
+    }
+
+    // tự động tạo mảng row(hàng ngang) tùy theo số hàng
+    // nhét hàng vào mảng cells 
+    // tạo đối tường cell thuộc eachCell có ID tùy vào x,y rồi nhét vào mảng row
+    // gọi hàm để nhún cell đó vào
+
+    this.auto_draw_board = function(){
+      var gameBoardDiv = document.getElementById(this.elementId);
+          gameBoardDiv.innerHTML = "";
+      for(var i = 0; i < this.rows; i++){
+        var row = [];
+        this.cells.push(row);
+        for(var j = 0; j < this.cols; j++){
+          var cell = new eachCell(i,j);
+          row.push(cell);
+          gameBoardDiv.innerHTML += cell.insert_html();
+        }
+      }
+    };
+
+    // khi nhấn sẽ gửi tọa độ x,y vào hàm play để lấy đúng tọa độ trong mảng cells
+
+    this.play = function(x,y){
+      if(this.isFinish){
+        return;
+      }
+      var cell = this.cells[x][y];
+      if(cell.value === value_blank){
+        cell.value = this.turn;
+        cell.insert_X_O();
+        this.checking(x,y);
+        if(this.turn === value_O){
+              this.turn = value_X;
+          } else {
+              this.turn = value_O;
+          }
+      }
+
+    }
+
+    this.checking = function(x,y){
+      var cell = this.cells[x][y];
+      // trục tung
+      var countX = 1;
+        var countO = 1;
+
+        var i = 1;
+        // xét theo chiều dương trục tung
+        while((y + i < this.cols) && this.cells[x][y + i].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+        }
+        // xét theo chiều âm trục tung
+        var i = 1;
+        while((y - i >= 0) && this.cells[x][y - i].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+        }
+        this.endGame(countX,countO);
+
+        //trục hoành
+        var countX = 1;
+        var countO = 1;
+        var i = 1;
+        // xét theo chiều dương trục hoành
+        while((x + i < this.rows) &&this.cells[x + i][y].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+        }
+        // xét theo chiều dương trục hoành
+
+        var i = 1;
+        while((x - i >= 0) &&this.cells[x - i][y].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+        }
+        this.endGame(countX,countO);
+
+        // hàng chéo từ trái qua
+        var countX = 1;
+        var countO = 1;
+        var i = 1;
+        var j = 1;
+        // từ trái qua theo chiều dương
+        while((y + i < this.cols) && (x + i < this.rows) && this.cells[x + i][y + j].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+            j++;
+        }
+        // từ trái qua theo chiều âm
+
+        var i = 1;
+        var j = 1;
+        while((x - i >= 0) && (y - j >= 0) && this.cells[x - i][y - j].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+            j++;
+        }
+        this.endGame(countX,countO);
+        
+        // hàng chéo từ phải qua
+
+        var countX = 1;
+        var countO = 1;
+        var i = 1;
+        var j = 1;
+        // từ phải qua theo chiều dương
+
+        while((y + j < this.cols) && (x - i >= 0) && this.cells[x - i][y + j].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+            j++;
+        }
+        var i = 1;
+        var j = 1;
+        while((y - j >= 0) && (x + i < this.rows) &&this.cells[x + i][y - j].value ===  cell.value){
+            if(cell.value == 2){
+                countX++;
+            }
+            else{
+                countO++;
+            }
+            i++;
+        }
+        this.endGame(countX,countO);
+    };
+
+    this.endGame = function (countX,countO) {
+        if(cell_played == cols_option*rows_option){
+            alert("hòaaaaaaaaaaa")
+            restart();
+            // location.reload();
+        }
+
+        else if(countX >= 5){
+            this.isFinish = true;
+            alert(" X thắng rồiiiiiiii!!!");
+            restart();
+            // location.reload();
+        }
+        else if(countO >=5){
+            this.isFinish = true;
+            alert(" O thắng rồiiiiiiiiii!!!");
+            restart();
+            // location.reload();
+        }
+       
+    };
+    }
+
+  
+
+    function play(x,y){
+      game.play(x,y);
+    }
+
+    function start(){
+      game = new boardGame(rows_option,cols_option,"game-board");
+      game.auto_draw_board();
+      
+    }
+
+    var game;
+    start();
+  
+</script>
+</html>
